@@ -3,26 +3,49 @@
 const { Server } = require('socket.io');
 
 function initSocket(httpServer) {
-  // TODO 1: create a new Socket.IO server bound to httpServer
-  //         (pass { cors: { origin: '*' } } as options)
-  const io = null;
+  // 1. Create Socket.IO server
+  const io = new Server(httpServer, {
+    cors: {
+      origin: '*',
+    },
+  });
 
-  if (!io) return io;   // remove this line once TODO 1 creates a real server
-
+  // 2. Handle new client connections
   io.on('connection', (socket) => {
     console.log(`[+] connected: ${socket.id}`);
 
-    // TODO 2: listen for 'joinRoom', data: { room }, call socket.join(data.room)
+    // 3. Join a room
+    socket.on('joinRoom', (data) => {
+      if (data && typeof data.room === 'string') {
+        socket.join(data.room);
+      }
+    });
 
-    // TODO 3: listen for 'leaveRoom', data: { room }, call socket.leave(data.room)
+    // 4. Leave a room
+    socket.on('leaveRoom', (data) => {
+      if (data && typeof data.room === 'string') {
+        socket.leave(data.room);
+      }
+    });
 
-    // TODO 4: listen for 'newComment', data: { room, text }, broadcast
-    //         'commentAdded' with that data to everyone in data.room
-    //         (use io.to(data.room).emit(), not io.emit())
+    // 5. Broadcast new comments to everyone in the room
+    socket.on('newComment', (data) => {
+      if (
+        data &&
+        typeof data.room === 'string' &&
+        typeof data.text === 'string'
+      ) {
+        io.to(data.room).emit('commentAdded', data);
+      }
+    });
 
-    // TODO 5: listen for 'disconnect', log: [-] disconnected: <socket.id> (<reason>)
+    // 6. Handle client disconnection
+    socket.on('disconnect', (reason) => {
+      console.log(`[-] disconnected: ${socket.id} (${reason})`);
+    });
   });
 
+  // 7. Return Socket.IO instance
   return io;
 }
 
